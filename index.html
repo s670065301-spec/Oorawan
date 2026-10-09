@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>ระบบแจ้งของหายและแจ้งพบสิ่งของ | มหาวิทยาลัย</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #172b4d;
+      --muted: #697b91;
+      --brand: #176b87;
+      --brand-dark: #124e68;
+      --canvas: #f3f7fa;
+      --line: #e5edf2;
+    }
+    body { min-height: 100vh; background: var(--canvas); color: var(--ink); font-family: 'Sarabun', sans-serif; }
+    .hero-section { position: relative; overflow: hidden; color: white; padding: 2.2rem 1rem 2.6rem; background: linear-gradient(120deg, #123e58 0%, #176b87 58%, #36a6a0 100%); }
+    .hero-section::after { content: ""; position: absolute; width: 340px; height: 340px; border: 1px solid rgba(255,255,255,.13); border-radius: 50%; right: 5%; top: -220px; box-shadow: 0 0 0 36px rgba(255,255,255,.04), 0 0 0 72px rgba(255,255,255,.03); }
+    .hero-inner { position: relative; z-index: 1; }
+    .hero-kicker { color: #bce8e5; font-size: .82rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+    .hero-section h2 { font-weight: 700; letter-spacing: -.02em; }
+    .hero-section p { color: rgba(255,255,255,.82); }
+    .main-container { max-width: 1180px; margin-top: -1.1rem; position: relative; z-index: 2; }
+    .toolbar-panel { padding: 1rem; background: #fff; border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 12px 30px rgba(25,55,78,.08); }
+    .form-control, .form-select { border-color: #dce6ec; }
+    .form-control:focus, .form-select:focus { border-color: #55a9b3; box-shadow: 0 0 0 .22rem rgba(23,107,135,.13); }
+    .btn-primary { --bs-btn-bg: var(--brand); --bs-btn-border-color: var(--brand); --bs-btn-hover-bg: var(--brand-dark); --bs-btn-hover-border-color: var(--brand-dark); --bs-btn-active-bg: var(--brand-dark); }
+    .card-item { overflow: hidden; border: 1px solid var(--line); border-top: 4px solid #d45757; border-radius: 16px; transition: transform .2s ease, box-shadow .2s ease; box-shadow: 0 5px 18px rgba(25,55,78,.055); }
+    .card-item.is-found { border-top-color: #299779; }
+    .card-item:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(25,55,78,.12); }
+    .card-item .card-body { padding: 1.25rem; }
+    .card-item .card-title { color: var(--ink) !important; font-weight: 700; }
+    .item-type-badge { padding: .45rem .7rem; border-radius: 999px; font-weight: 600; }
+    .badge-lost { background-color: #fff0ef; color: #b13a3a; }
+    .badge-found { background-color: #e8f7f1; color: #187557; }
+    .item-meta { color: #455a70; }
+    .item-meta strong { color: var(--muted); font-weight: 500; }
+    .card-item .card-footer { padding: .9rem 1.25rem 1.1rem; }
+    .status-badge { background: #edf3f6; color: #455a70; font-weight: 600; }
+    .result-count { color: var(--muted); font-size: .92rem; }
+    .empty-state { padding: 3rem 1rem; border: 1px dashed #cbd9e2; border-radius: 18px; background: rgba(255,255,255,.72); }
+    .empty-state-icon { display: grid; place-items: center; width: 68px; height: 68px; margin: 0 auto 1rem; border-radius: 50%; background: #e8f2f5; font-size: 1.8rem; }
+    .account-screen { min-height: 100vh; display: grid; place-items: center; }
+    .account-card { width: min(100%, 620px); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 18px 48px rgba(25,55,78,.12); }
+    .account-card .card-body { padding: clamp(1.25rem, 5vw, 2.5rem); }
+    #accountStatus { border-radius: 12px; }
+    #accountEmail { overflow-wrap: anywhere; }
+    .account-mark { display: grid; place-items: center; width: 58px; height: 58px; margin: 0 auto 1rem; border-radius: 18px; background: #e6f3f4; font-size: 1.7rem; }
+    .footer-note { color: #8292a3; font-size: .85rem; }
+    @media (max-width: 575.98px) {
+      .hero-section { padding: 1.8rem 1rem 2.2rem; }
+      .hero-section h2 { font-size: 1.45rem; }
+      .main-container { margin-top: -.7rem; }
+      .toolbar-panel { padding: .8rem; border-radius: 14px; }
+    }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <main id="accountScreen" class="container account-screen py-4" hidden>
+    <section class="card account-card mx-auto">
+      <div class="card-body p-4 p-md-5">
+        <div class="text-center mb-4">
+          <div class="account-mark" aria-hidden="true">👤</div>
+          <h1 class="h3">บัญชีผู้ใช้</h1>
+          <p id="accountEmail" class="text-muted mb-0" aria-live="polite"></p>
+        </div>
+        <div id="accountStatus" class="alert alert-info" role="status" aria-live="polite">กำลังตรวจสอบบัญชี...</div>
+        <div id="localAccountLogin" class="border rounded p-3 mb-4" hidden>
+          <label for="localLoginEmail" class="form-label">เข้าสู่ระบบบัญชีที่ลงทะเบียนไว้ใน Chrome</label>
+          <div class="input-group">
+            <input id="localLoginEmail" class="form-control" type="email" placeholder="อีเมล Google" autocomplete="email">
+            <button type="button" class="btn btn-outline-primary" onclick="loginLocalAccount()">เข้าสู่ระบบ</button>
+          </div>
+          <div class="form-text">โหมดไฟล์ใน Chrome ใช้อีเมลแยกบัญชีในเครื่องเท่านั้น ไม่ได้ตรวจสอบกับ Google</div>
+        </div>
+        <form id="registrationForm" onsubmit="registerAccount(event)" hidden>
+          <h2 class="h5 mb-3">ลงทะเบียนใช้งานครั้งแรก</h2>
+          <div id="localRegistrationEmail" class="mb-3" hidden>
+            <label for="profileEmail" class="form-label">อีเมล Google <span class="text-danger">*</span></label>
+            <input id="profileEmail" class="form-control" type="email" maxlength="254" autocomplete="email">
+          </div>
+          <div class="mb-3">
+            <label for="profileName" class="form-label">ชื่อ-นามสกุล <span class="text-danger">*</span></label>
+            <input id="profileName" class="form-control" type="text" maxlength="120" required>
+          </div>
+          <div class="mb-3">
+            <label for="profilePhone" class="form-label">เบอร์ติดต่อ <span class="text-danger">*</span></label>
+            <input id="profilePhone" class="form-control" type="tel" maxlength="40" required>
+          </div>
+          <div class="mb-3">
+            <label for="profileFaculty" class="form-label">คณะ / หน่วยงาน <span class="text-danger">*</span></label>
+            <input id="profileFaculty" class="form-control" type="text" maxlength="120" required>
+          </div>
+          <div class="mb-3">
+            <label for="profileRole" class="form-label">สถานะผู้ใช้ <span class="text-danger">*</span></label>
+            <select id="profileRole" class="form-select" onchange="updateIdentifierLabel()" required>
+              <option value="นักศึกษา">นักศึกษา</option>
+              <option value="บุคลากร">บุคลากร</option>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label id="profileIdentifierLabel" for="profileIdentifier" class="form-label">รหัสนักศึกษา <span class="text-danger">*</span></label>
+            <input id="profileIdentifier" class="form-control" type="text" maxlength="60" required>
+          </div>
+          <button id="registerButton" type="submit" class="btn btn-primary w-100">ลงทะเบียน</button>
+        </form>
+        <div id="registeredProfile" class="mb-4" hidden></div>
+        <div id="accountActions" class="d-grid gap-2" hidden>
+          <button id="enterSystemButton" type="button" class="btn btn-primary" onclick="enterSystem()">เข้าสู่ระบบแจ้งสิ่งของ</button>
+          <button type="button" class="btn btn-outline-secondary" onclick="switchGoogleAccount()">เข้าสู่ระบบด้วยบัญชีอื่น</button>
+          <button type="button" class="btn btn-outline-danger" onclick="logout()">ออกจากระบบ</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <main id="appContent" hidden>
+  <!-- Header -->
+  <header class="hero-section">
+   <div class="hero-inner container text-center">
+    <div class="hero-kicker mb-2">Campus Lost &amp; Found</div>
+    <h2 class="mb-2">ระบบแจ้งของหายและแจ้งพบสิ่งของ</h2>
+    <p class="mb-0">พื้นที่กลางสำหรับค้นหา แจ้ง และติดตามสิ่งของภายในมหาวิทยาลัยเจ้าพระยา</p>
+    <div id="accountControls" class="mt-3 d-flex justify-content-center align-items-center gap-2 flex-wrap">
+      <span id="headerAccountName" class="small"></span>
+      <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#accountModal">ข้อมูลบัญชี</button>
+      <button type="button" class="btn btn-sm btn-outline-light" onclick="switchGoogleAccount()">เข้าสู่ระบบอื่น</button>
+      <button type="button" class="btn btn-sm btn-outline-light" onclick="logout()">ออกจากระบบ</button>
+    </div>
+   </div>
+  </header>
+
+  <div class="container main-container mb-5">
+    <!-- Action Bar & Search -->
+    <div class="toolbar-panel row g-3 align-items-center mb-3">
+      <div class="col-lg-6">
+        <input type="search" id="searchInput" class="form-control form-control-lg" placeholder="🔎  ค้นหาชื่อสิ่งของ สถานที่ หรือหมวดหมู่..." oninput="filterItems()" aria-label="ค้นหารายการ">
+      </div>
+      <div class="col-lg-3">
+        <select id="typeFilter" class="form-select form-select-lg" aria-label="กรองตามประเภท" onchange="filterItems()">
+          <option value="">รายการทั้งหมด</option>
+          <option value="แจ้งของหาย">เฉพาะรายการของหาย</option>
+          <option value="แจ้งพบสิ่งของ">เฉพาะรายการพบของ</option>
+        </select>
+      </div>
+      <div class="col-lg-3 d-grid">
+        <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#addModal">+ แจ้งของหาย / แจ้งพบสิ่งของ</button>
+      </div>
+    </div>
+    <div id="storageNotice" class="alert alert-info py-2" role="status" hidden></div>
+    <p id="resultCount" class="result-count mb-3" aria-live="polite"></p>
+
+    <!-- Item Cards Grid -->
+    <div class="row g-3" id="itemList">
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2">กำลังโหลดข้อมูลรายการ...</p>
+      </div>
+    </div>
+  </div>
+  </main>
+
+  <!-- Modal ฟอร์มบันทึกข้อมูล -->
+  <div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">แบบฟอร์มแจ้งข้อมูล</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="itemForm" onsubmit="submitForm(event)">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">ประเภทการแจ้ง <span class="text-danger">*</span></label>
+              <select class="form-select" id="type" required>
+                <option value="แจ้งของหาย">แจ้งของหาย (Lost)</option>
+                <option value="แจ้งพบสิ่งของ">แจ้งพบสิ่งของ (Found)</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">ชื่อสิ่งของ <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="itemName" placeholder="เช่น กระเป๋าสตางค์, บัตรนักศึกษา" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">หมวดหมู่</label>
+              <select class="form-select" id="category">
+                <option value="เอกสาร/บัตร">เอกสาร / บัตรต่างๆ</option>
+                <option value="อุปกรณ์อิเล็กทรอนิกส์">อุปกรณ์อิเล็กทรอนิกส์</option>
+                <option value="ของใช้ส่วนตัว">ของใช้ส่วนตัว</option>
+                <option value="กุญแจ">กุญแจ</option>
+                <option value="อื่นๆ">อื่นๆ</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">สถานที่พบ / สถานที่หาย <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="location" placeholder="เช่น โรงอาหารกลาง, คณะวิทยาศาสตร์" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">วันที่เกิดเหตุ</label>
+              <input type="date" class="form-control" id="date" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">ช่องทางติดต่อ <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="contact" placeholder="เช่น เบอร์โทรศัพท์, เบอร์ติดต่อ/Line ID" required>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="submit" class="btn btn-primary" id="btnSubmit">บันทึกข้อมูล</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="accountModal" tabindex="-1" aria-labelledby="accountModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="accountModalTitle" class="modal-title fs-5">ข้อมูลบัญชี</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+        </div>
+
+        <footer class="container main-container pb-4 text-center footer-note">ระบบแจ้งของหายและแจ้งพบสิ่งของ · ช่วยกันส่งคืนสิ่งของสู่เจ้าของ</footer>
+        <div id="accountModalBody" class="modal-body"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" onclick="switchGoogleAccount()">เข้าสู่ระบบด้วยบัญชีอื่น</button>
+          <button type="button" class="btn btn-outline-danger" onclick="logout()">ออกจากระบบ</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let allItems = [];
+    const LOCAL_STORAGE_KEY = 'university-lost-and-found-items';
+    const LOCAL_PROFILES_KEY = 'university-lost-and-found-profiles';
+    const LOCAL_ACTIVE_ACCOUNT_KEY = 'university-lost-and-found-active-account';
+    let currentAccount = null;
+    let accountLinks = null;
+
+    window.onload = function() {
+      const notice = document.getElementById('storageNotice');
+      if (!hasAppsScript()) {
+        notice.textContent = 'กำลังใช้งานใน Chrome: ข้อมูลจะบันทึกไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น';
+        notice.hidden = false;
+        document.getElementById('appContent').hidden = true;
+        document.getElementById('accountControls').hidden = false;
+        document.getElementById('accountScreen').hidden = false;
+        document.getElementById('localAccountLogin').hidden = false;
+        document.getElementById('localRegistrationEmail').hidden = false;
+        const activeEmail = localStorage.getItem(LOCAL_ACTIVE_ACCOUNT_KEY);
+        const profiles = getLocalProfiles();
+        if (activeEmail && profiles[activeEmail]) {
+          showAccountState({ email: activeEmail, profile: profiles[activeEmail] });
+        } else {
+          document.getElementById('accountStatus').textContent = 'ลงทะเบียนด้วยบัญชี Google ใดก็ได้ หรือเข้าสู่ระบบบัญชีที่ลงทะเบียนไว้ใน Chrome';
+          document.getElementById('registrationForm').hidden = false;
+        }
+        return;
+      }
+      document.getElementById('accountScreen').hidden = false;
+      google.script.run
+        .withSuccessHandler(showAccountState)
+        .withFailureHandler(error => showAccountError(error.message || error))
+        .getAccountState();
+      google.script.run
+        .withSuccessHandler(links => { accountLinks = links; })
+        .withFailureHandler(error => showAccountError(error.message || error))
+        .getAccountLinks();
+    };
+
+    function hasAppsScript() {
+      return typeof google !== 'undefined' && google.script && google.script.run;
+    }
+
+    function showAccountState(state) {
+      if (!state || !state.email) {
+        showAccountError('ตรวจสอบบัญชี Google ไม่ได้ กรุณาเปิด Web App ด้วยบัญชี Google แล้วลองใหม่');
+        return;
+      }
+      currentAccount = state;
+      document.getElementById('accountEmail').textContent = state.email;
+      const status = document.getElementById('accountStatus');
+      const form = document.getElementById('registrationForm');
+      const profileView = document.getElementById('registeredProfile');
+      const actions = document.getElementById('accountActions');
+      if (state.profile) {
+        status.textContent = 'บัญชีนี้ลงทะเบียนแล้ว';
+        status.className = 'alert alert-success';
+        form.hidden = true;
+        profileView.innerHTML = profileMarkup(state.profile);
+        profileView.hidden = false;
+        actions.hidden = false;
+        document.getElementById('enterSystemButton').textContent = 'เข้าสู่ระบบแจ้งสิ่งของ';
+      } else {
+        status.textContent = 'ลงทะเบียนข้อมูลผู้ใช้ก่อนเริ่มแจ้งและค้นหารายการ';
+        status.className = 'alert alert-info';
+        form.hidden = false;
+        profileView.hidden = true;
+        actions.hidden = false;
+        document.getElementById('enterSystemButton').hidden = true;
+      }
+      document.getElementById('enterSystemButton').hidden = !state.profile;
+    }
+
+    function showAccountError(message) {
+      const status = document.getElementById('accountStatus');
+      status.className = 'alert alert-danger';
+      status.textContent = message;
+    }
+
+    function profileMarkup(profile) {
+      const rows = [
+        ['ชื่อ-นามสกุล', profile.name],
+        ['เบอร์ติดต่อ', profile.phone],
+        ['คณะ / หน่วยงาน', profile.faculty],
+        ['สถานะผู้ใช้', profile.role],
+        ['รหัสนักศึกษา / บุคลากร', profile.identifier],
+        ['บัญชี Google', currentAccount.email]
+      ];
+      return rows.map(([label, value]) =>
+        `<p class="mb-2"><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}</p>`
+      ).join('');
+    }
+
+    function updateIdentifierLabel() {
+      const role = document.getElementById('profileRole').value;
+      document.getElementById('profileIdentifierLabel').innerHTML =
+        `${role === 'นักศึกษา' ? 'รหัสนักศึกษา' : 'รหัสบุคลากร'} <span class="text-danger">*</span>`;
+    }
+
+    function registerAccount(event) {
+      event.preventDefault();
+      const button = document.getElementById('registerButton');
+      button.disabled = true;
+      button.textContent = 'กำลังลงทะเบียน...';
+      const profile = {
+        email: hasAppsScript()
+          ? currentAccount.email
+          : document.getElementById('profileEmail').value.trim().toLowerCase(),
+        name: document.getElementById('profileName').value,
+        phone: document.getElementById('profilePhone').value,
+        faculty: document.getElementById('profileFaculty').value,
+        role: document.getElementById('profileRole').value,
+        identifier: document.getElementById('profileIdentifier').value
+      };
+      if (!hasAppsScript()) {
+        try {
+          if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(profile.email)) {
+            throw new Error('กรุณากรอกอีเมลที่ถูกต้อง');
+          }
+          const profiles = getLocalProfiles();
+          if (profiles[profile.email]) {
+            throw new Error('อีเมลนี้ลงทะเบียนใน Chrome เครื่องนี้แล้ว กรุณาเข้าสู่ระบบด้วยอีเมลนี้');
+          }
+          profiles[profile.email] = profile;
+          localStorage.setItem(LOCAL_PROFILES_KEY, JSON.stringify(profiles));
+          localStorage.setItem(LOCAL_ACTIVE_ACCOUNT_KEY, profile.email);
+          currentAccount = { email: profile.email, profile };
+          button.disabled = false;
+          button.textContent = 'ลงทะเบียน';
+          showAccountState(currentAccount);
+        } catch (error) {
+          button.disabled = false;
+          button.textContent = 'ลงทะเบียน';
+          showAccountError(error.message || error);
+        }
+        return;
+      }
+      google.script.run
+        .withSuccessHandler(result => {
+          button.disabled = false;
+          button.textContent = 'ลงทะเบียน';
+          if (!result || !result.success) {
+            showAccountError(result && result.message ? result.message : 'ลงทะเบียนไม่สำเร็จ');
+            return;
+          }
+          currentAccount.profile = result.profile;
+          showAccountState(currentAccount);
+        })
+        .withFailureHandler(error => {
+          button.disabled = false;
+          button.textContent = 'ลงทะเบียน';
+          showAccountError(error.message || error);
+        })
+        .registerAccount(profile);
+    }
+
+    function enterSystem() {
+      if (!currentAccount || !currentAccount.profile) return;
+      document.getElementById('accountScreen').hidden = true;
+      document.getElementById('appContent').hidden = false;
+      document.getElementById('headerAccountName').textContent =
+        `${currentAccount.profile.name} · ${currentAccount.email}`;
+      document.getElementById('accountModalBody').innerHTML = profileMarkup(currentAccount.profile);
+      loadItems();
+    }
+
+    function getLocalProfiles() {
+      const savedProfiles = localStorage.getItem(LOCAL_PROFILES_KEY);
+      if (!savedProfiles) return {};
+      const profiles = JSON.parse(savedProfiles);
+      if (!profiles || typeof profiles !== 'object' || Array.isArray(profiles)) {
+        throw new Error('ข้อมูลบัญชีใน Chrome ไม่ถูกต้อง');
+      }
+      return profiles;
+    }
+
+    function loginLocalAccount() {
+      try {
+        const email = document.getElementById('localLoginEmail').value.trim().toLowerCase();
+        const profile = getLocalProfiles()[email];
+        if (!profile) throw new Error('ไม่พบบัญชีนี้ใน Chrome เครื่องนี้');
+        localStorage.setItem(LOCAL_ACTIVE_ACCOUNT_KEY, email);
+        currentAccount = { email, profile };
+        showAccountState(currentAccount);
+      } catch (error) {
+        showAccountError(error.message || error);
+      }
+    }
+
+    function logout() {
+      if (!hasAppsScript()) {
+        localStorage.removeItem(LOCAL_ACTIVE_ACCOUNT_KEY);
+        currentAccount = null;
+        document.getElementById('appContent').hidden = true;
+        document.getElementById('accountScreen').hidden = false;
+        document.getElementById('accountActions').hidden = true;
+        document.getElementById('registeredProfile').hidden = true;
+        document.getElementById('registrationForm').hidden = false;
+        document.getElementById('accountStatus').textContent = 'ออกจากระบบแล้ว';
+        return;
+      }
+      if (!accountLinks || !accountLinks.logout) {
+        showAccountError('ไม่สามารถออกจากระบบได้ในขณะนี้ กรุณาโหลดหน้าใหม่');
+        return;
+      }
+      window.top.location.href = accountLinks.logout;
+    }
+
+    function switchGoogleAccount() {
+      if (!hasAppsScript()) {
+        logout();
+        document.getElementById('accountStatus').textContent = 'กรอกอีเมลบัญชีอื่นเพื่อลงทะเบียน หรือเข้าสู่ระบบบัญชีที่มีอยู่';
+        return;
+      }
+      if (!accountLinks || !accountLinks.switchAccount) {
+        showAccountError('ไม่สามารถเปลี่ยนบัญชีได้ในขณะนี้ กรุณาโหลดหน้าใหม่');
+        return;
+      }
+      window.top.location.href = accountLinks.switchAccount;
+    }
+
+    function loadItems() {
+      if (!hasAppsScript()) {
+        try {
+          const savedItems = localStorage.getItem(LOCAL_STORAGE_KEY);
+          allItems = savedItems === null ? [] : JSON.parse(savedItems);
+          if (!Array.isArray(allItems)) {
+            throw new Error('รูปแบบข้อมูลที่บันทึกไว้ไม่ถูกต้อง');
+          }
+          filterItems();
+        } catch (error) {
+          showLoadError(error);
+        }
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(items => {
+          allItems = Array.isArray(items) ? items : [];
+          filterItems();
+        })
+        .withFailureHandler(showLoadError)
+        .getItems();
+    }
+
+    function renderItems(items) {
+      const container = document.getElementById('itemList');
+      const resultCount = document.getElementById('resultCount');
+      resultCount.textContent = `แสดง ${items.length} จาก ${allItems.length} รายการ`;
+      if (items.length === 0) {
+        const hasFilter = document.getElementById('searchInput').value.trim() !== '' ||
+          document.getElementById('typeFilter').value !== '';
+        container.innerHTML = `
+          <div class="col-12">
+            <div class="empty-state text-center">
+              <div class="empty-state-icon">${hasFilter ? '🔎' : '🎒'}</div>
+              <h3 class="h5 mb-2">${hasFilter ? 'ไม่พบรายการที่ตรงกับเงื่อนไข' : 'ยังไม่มีรายการในระบบ'}</h3>
+              <p class="text-muted mb-0">${hasFilter ? 'ลองเปลี่ยนคำค้นหาหรือตัวกรอง แล้วค้นหาอีกครั้ง' : 'หากพบหรือทำสิ่งของหาย กดปุ่มแจ้งรายการเพื่อเริ่มต้นได้เลย'}</p>
+            </div>
+          </div>`;
+        return;
+      }
+
+      let html = '';
+      items.forEach(item => {
+        const isFound = item.type === 'แจ้งพบสิ่งของ';
+        const badgeClass = isFound ? 'badge-found' : 'badge-lost';
+        html += `
+          <div class="col-sm-6 col-xl-4 item-card-box">
+            <div class="card card-item ${isFound ? 'is-found' : ''} h-100">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <span class="badge item-type-badge ${badgeClass}">${escapeHtml(item.type)}</span>
+                  <small class="text-muted">#${escapeHtml(item.id)}</small>
+                </div>
+                <h5 class="card-title text-primary">${escapeHtml(item.itemName)}</h5>
+                <p class="card-text item-meta mb-2"><strong>หมวดหมู่</strong><br>${escapeHtml(item.category)}</p>
+                <p class="card-text item-meta mb-2"><strong>สถานที่</strong><br>${escapeHtml(item.location)}</p>
+                <p class="card-text item-meta mb-2"><strong>วันที่</strong><br>${escapeHtml(item.date)}</p>
+                <p class="card-text mb-0"><strong class="text-muted fw-normal">ติดต่อ</strong><br><span class="text-success fw-semibold">${escapeHtml(item.contact)}</span></p>
+              </div>
+              <div class="card-footer bg-white border-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <span class="badge status-badge">${escapeHtml(item.status)}</span>
+                ${item.status !== 'คืนเจ้าของแล้ว' ? `<button type="button" class="btn btn-sm btn-outline-success" data-return-item="${escapeHtml(item.id)}">ยืนยันคืนเจ้าของ</button>` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    document.getElementById('itemList').addEventListener('click', event => {
+      const button = event.target.closest('[data-return-item]');
+      if (button) markAsReturned(button.dataset.returnItem);
+    });
+
+    function markAsReturned(itemId) {
+      if (!confirm('ยืนยันว่าได้คืนสิ่งของให้เจ้าของแล้วใช่หรือไม่?')) return;
+
+      if (!hasAppsScript()) {
+        try {
+          const savedItems = localStorage.getItem(LOCAL_STORAGE_KEY);
+          const items = savedItems === null ? [] : JSON.parse(savedItems);
+          if (!Array.isArray(items)) {
+            throw new Error('รูปแบบข้อมูลที่บันทึกไว้ไม่ถูกต้อง');
+          }
+          const item = items.find(entry => String(entry.id) === itemId);
+          if (!item) throw new Error('ไม่พบรายการที่ต้องการอัปเดต');
+          item.status = 'คืนเจ้าของแล้ว';
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(items));
+          allItems = items;
+          filterItems();
+        } catch (error) {
+          alert(`อัปเดตสถานะไม่สำเร็จ: ${error.message || error}`);
+        }
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(result => {
+          if (!result || !result.success) {
+            alert(result && result.message ? result.message : 'อัปเดตสถานะไม่สำเร็จ');
+            return;
+          }
+          loadItems();
+        })
+        .withFailureHandler(error => {
+          alert(`อัปเดตสถานะไม่สำเร็จ: ${error.message || error}`);
+        })
+        .markItemReturned(itemId);
+    }
+
+    function escapeHtml(value) {
+      return String(value == null ? '' : value).replace(/[&<>"']/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      })[character]);
+    }
+
+    function showLoadError(error) {
+      document.getElementById('itemList').innerHTML =
+        `<div class="col-12 text-center py-5 text-danger">โหลดข้อมูลไม่สำเร็จ: ${escapeHtml(error.message || error)}</div>`;
+    }
+
+    function submitForm(e) {
+      e.preventDefault();
+      const btnSubmit = document.getElementById('btnSubmit');
+      btnSubmit.disabled = true;
+      btnSubmit.innerText = 'กำลังบันทึก...';
+
+      const formData = {
+        type: document.getElementById('type').value,
+        itemName: document.getElementById('itemName').value,
+        category: document.getElementById('category').value,
+        location: document.getElementById('location').value,
+        date: document.getElementById('date').value,
+        contact: document.getElementById('contact').value
+      };
+
+      if (!hasAppsScript()) {
+        try {
+          const savedItems = localStorage.getItem(LOCAL_STORAGE_KEY);
+          const items = savedItems === null ? [] : JSON.parse(savedItems);
+          if (!Array.isArray(items)) {
+            throw new Error('รูปแบบข้อมูลที่บันทึกไว้ไม่ถูกต้อง');
+          }
+          items.push({
+            id: `LOCAL-${Date.now()}`,
+            ...formData,
+            status: 'กำลังติดตาม'
+          });
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(items));
+          finishSave({ success: true, message: 'บันทึกข้อมูลใน Chrome เครื่องนี้เรียบร้อยแล้ว' }, btnSubmit);
+        } catch (error) {
+          finishSaveError(error, btnSubmit);
+        }
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(res => finishSave(res, btnSubmit))
+        .withFailureHandler(error => {
+          finishSaveError(error, btnSubmit);
+        })
+        .saveItemData(formData);
+    }
+
+    function finishSave(res, btnSubmit) {
+      alert(res.message);
+      if (res.success) {
+        document.getElementById('itemForm').reset();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('addModal')).hide();
+        document.getElementById('searchInput').value = '';
+        document.getElementById('typeFilter').value = '';
+        loadItems();
+      }
+      btnSubmit.disabled = false;
+      btnSubmit.innerText = 'บันทึกข้อมูล';
+    }
+
+    function finishSaveError(error, btnSubmit) {
+      alert(`บันทึกข้อมูลไม่สำเร็จ: ${error.message || error}`);
+      btnSubmit.disabled = false;
+      btnSubmit.innerText = 'บันทึกข้อมูล';
+    }
+
+    function filterItems() {
+      const keyword = document.getElementById('searchInput').value.trim().toLocaleLowerCase();
+      const selectedType = document.getElementById('typeFilter').value;
+      const searchableFields = ['id', 'type', 'itemName', 'category', 'location', 'date', 'contact', 'status'];
+      const filtered = allItems.filter(item =>
+        (!selectedType || item.type === selectedType) &&
+        searchableFields.some(field =>
+          String(item[field] == null ? '' : item[field]).toLocaleLowerCase().includes(keyword)
+        )
+      );
+      renderItems(filtered);
+    }
+    
+  </script>
+</body>
+</html>
